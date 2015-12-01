@@ -16,9 +16,11 @@ struct BEZIER_CONTROL_POINT
 
 // Simple Bezier patch for a Mobius strip
 // 4 patches with 16 control points each
-const BEZIER_CONTROL_POINT g_MobiusStrip[4] = {
+const BEZIER_CONTROL_POINT g_MobiusStrip[] = {
 	{ 0.0f,  0.5f, 0.0f, 1.0f },
 	{ 5.0f,  0.5f, 5.0f, 1.0f },
 	{ 10.0f,  0.5f, 5.0f, 1.0f },
-	{ 15.0f,  0.5f, 0.0f, 1.0f },
+    { 15.0f,  0.5f, 0.0f, 1.0f },
+    { 10.0f,  0.5f, -5.0f, 1.0f },
+	{ 0.0f,  0.5f, 0.0f, 1.0f },
 };

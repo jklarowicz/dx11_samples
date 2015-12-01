@@ -30,6 +30,8 @@ cbuffer cbPerFrame : register( b0 )
     matrix g_mViewProjection;
     float3 g_vCameraPosWorld;
     float  g_fTessellationFactor;
+    uint   NumControlPoints;
+    uint   dummy[3];
 };
 
 //--------------------------------------------------------------------------------------
@@ -37,7 +39,7 @@ cbuffer cbPerFrame : register( b0 )
 //--------------------------------------------------------------------------------------
 struct VS_CONTROL_POINT_INPUT
 {
-    float4 vPosition        : POSITION;
+    uint vertex_id : SV_VertexID;
 };
 
 struct VS_CONTROL_POINT_OUTPUT
@@ -53,11 +55,22 @@ struct VS_CONTROL_POINT_OUTPUT
 
 // The output from the vertex shader will go into the hull shader.
 
+Buffer<float4> g_Buffer;
+
 VS_CONTROL_POINT_OUTPUT BezierVS( VS_CONTROL_POINT_INPUT Input )
 {
     VS_CONTROL_POINT_OUTPUT Output;
 
-    Output.vPosition = Input.vPosition;
+    uint patch_index = Input.vertex_id / 4;
+    uint patch_point = Input.vertex_id % 4;
+
+    uint id = patch_index + patch_point;
+    if (id < 1)
+        id = 1;
+    if (id > NumControlPoints)
+        id = NumControlPoints;
+
+    Output.vPosition = g_Buffer.Load(id - 1);
 
     return Output;
 }

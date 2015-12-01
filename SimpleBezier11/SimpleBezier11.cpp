@@ -43,13 +43,16 @@ ID3D11DomainShader*                 g_pDomainShader = nullptr;
 ID3D11PixelShader*                  g_pPixelShader = nullptr;
 ID3D11PixelShader*                  g_pSolidColorPS = nullptr;
 
-ID3D11Buffer*   g_pControlPointVB;                           // Control points for mesh
+ID3D11Buffer*                       g_pControlPointBuffer;      // Control points for mesh
+ID3D11ShaderResourceView*           g_pControlPointSRV;
 
 struct CB_PER_FRAME_CONSTANTS
 {
     XMFLOAT4X4  mViewProjection;
     XMFLOAT3    vCameraPosWorld;
     float       fTessellationFactor;
+    UINT        NumControlPoints;
+    UINT        dummy[3];
 };
 
 ID3D11Buffer*                       g_pcbPerFrame = nullptr;
@@ -416,13 +419,20 @@ HRESULT CALLBACK OnD3D11CreateDevice( ID3D11Device* pd3dDevice, const DXGI_SURFA
     ZeroMemory( &vbDesc, sizeof(D3D11_BUFFER_DESC) );
     vbDesc.ByteWidth = sizeof(BEZIER_CONTROL_POINT) * ARRAYSIZE(g_MobiusStrip);
     vbDesc.Usage = D3D11_USAGE_DEFAULT;
-    vbDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    vbDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
     D3D11_SUBRESOURCE_DATA vbInitData;
     ZeroMemory( &vbInitData, sizeof(vbInitData) );
     vbInitData.pSysMem = g_MobiusStrip;
-    V_RETURN( pd3dDevice->CreateBuffer( &vbDesc, &vbInitData, &g_pControlPointVB ) );
-    DXUT_SetDebugName( g_pControlPointVB, "Control Points" );
+    V_RETURN( pd3dDevice->CreateBuffer( &vbDesc, &vbInitData, &g_pControlPointBuffer ) );
+    DXUT_SetDebugName( g_pControlPointBuffer, "Control Points" );
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC vbSRV;
+    ZeroMemory(&vbSRV, sizeof(vbSRV));
+    vbSRV.Buffer.NumElements = ARRAYSIZE(g_MobiusStrip);
+    vbSRV.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    vbSRV.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+    V_RETURN( pd3dDevice->CreateShaderResourceView( g_pControlPointBuffer, &vbSRV, &g_pControlPointSRV ) );
 
     return S_OK;
 }
@@ -479,6 +489,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
     XMStoreFloat4x4( &pData->mViewProjection, XMMatrixTranspose( mViewProjection ) );
     XMStoreFloat3( &pData->vCameraPosWorld, g_Camera.GetEyePt() );
     pData->fTessellationFactor = (float)g_fSubdivs;
+    pData->NumControlPoints = ARRAYSIZE(g_MobiusStrip);
 
     pd3dImmediateContext->Unmap( g_pcbPerFrame, 0 );
 
@@ -525,14 +536,12 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
     // This sample uses patches with 16 control points each
     // Although the Mobius strip only needs to use a vertex buffer,
     // you can use an index buffer as well by calling IASetIndexBuffer().
-    pd3dImmediateContext->IASetInputLayout( g_pPatchLayout );
-    UINT Stride = sizeof( BEZIER_CONTROL_POINT );
-    UINT Offset = 0;
-    pd3dImmediateContext->IASetVertexBuffers( 0, 1, &g_pControlPointVB, &Stride, &Offset );
+    pd3dImmediateContext->IASetInputLayout( NULL );
+    pd3dImmediateContext->VSSetShaderResources( 0, 1, &g_pControlPointSRV );
     pd3dImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST );
 
     // Draw the mesh
-    pd3dImmediateContext->Draw( ARRAYSIZE(g_MobiusStrip), 0 );
+    pd3dImmediateContext->Draw( (ARRAYSIZE(g_MobiusStrip) - 1)*4, 0 );
 
     pd3dImmediateContext->RSSetState( g_pRasterizerStateSolid );
 
@@ -577,5 +586,6 @@ void CALLBACK OnD3D11DestroyDevice( void* pUserContext )
     SAFE_RELEASE( g_pRasterizerStateSolid );
     SAFE_RELEASE( g_pRasterizerStateWireframe );
 
-    SAFE_RELEASE( g_pControlPointVB );
+    SAFE_RELEASE( g_pControlPointSRV );
+    SAFE_RELEASE( g_pControlPointBuffer );
 }
