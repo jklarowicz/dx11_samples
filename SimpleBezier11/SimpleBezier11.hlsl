@@ -17,10 +17,10 @@
 
 // The input patch size.  In this sample, it is 16 control points.
 // This value should match the call to IASetPrimitiveTopology()
-#define INPUT_PATCH_SIZE 16
+#define INPUT_PATCH_SIZE 4
 
 // The output patch size.  In this sample, it is also 16 control points.
-#define OUTPUT_PATCH_SIZE 16
+#define OUTPUT_PATCH_SIZE 4
 
 //--------------------------------------------------------------------------------------
 // Constant Buffers
@@ -37,12 +37,12 @@ cbuffer cbPerFrame : register( b0 )
 //--------------------------------------------------------------------------------------
 struct VS_CONTROL_POINT_INPUT
 {
-    float3 vPosition        : POSITION;
+    float4 vPosition        : POSITION;
 };
 
 struct VS_CONTROL_POINT_OUTPUT
 {
-    float3 vPosition        : POSITION;
+    float4 vPosition        : POSITION;
 };
 
 // This simple vertex shader passes the control points straight through to the
@@ -73,7 +73,8 @@ struct HS_CONSTANT_DATA_OUTPUT
 
 struct HS_OUTPUT
 {
-    float3 vPosition           : BEZIERPOS;
+    float4 vPosition           : BEZIERPOS;
+    //float4 vColor              : COLOR0;
 };
 
 // This constant hull shader is executed once per patch.  For the simple Mobius strip
@@ -126,8 +127,7 @@ HS_OUTPUT BezierHS( InputPatch<VS_CONTROL_POINT_OUTPUT, INPUT_PATCH_SIZE> p,
 struct DS_OUTPUT
 {
     float4 vPosition        : SV_POSITION;
-    float3 vWorldPos        : WORLDPOS;
-    float3 vNormal            : NORMAL;
+    float4 vColor           : COLOR;
 };
 
 //--------------------------------------------------------------------------------------
@@ -141,7 +141,6 @@ float4 BernsteinBasis(float t)
                    t * t * t );
 }
 
-//--------------------------------------------------------------------------------------
 float4 dBernsteinBasis(float t)
 {
     float invT = 1.0f - t;
@@ -153,15 +152,37 @@ float4 dBernsteinBasis(float t)
 }
 
 //--------------------------------------------------------------------------------------
+float4 HermiteBasis(float t)
+{
+    float t2 = t*t;
+    float t3 = t2*t;
+
+    return float4(  2.0*t3 - 3.0*t2 + 1.0,
+                    t3 - 2.0*t2 + t,
+                    t3 - t2,
+                   -2.0*t3 + 3.0*t2);
+}
+
+float4 dHermiteBasis(float t)
+{
+    float t2 = t*t;
+
+    return float4(  6.0*t2 - 6.0*t,
+                    3.0*t2 - 4.0*t + 1.0,
+                    3.0*t2 - 2.0*t,
+                   -6.0*t2 + 6.0*t);
+}
+
+//--------------------------------------------------------------------------------------
 float3 EvaluateBezier( const OutputPatch<HS_OUTPUT, OUTPUT_PATCH_SIZE> bezpatch,
                        float4 BasisU,
                        float4 BasisV )
 {
     float3 Value = float3(0,0,0);
     Value  = BasisV.x * ( bezpatch[0].vPosition * BasisU.x + bezpatch[1].vPosition * BasisU.y + bezpatch[2].vPosition * BasisU.z + bezpatch[3].vPosition * BasisU.w );
-    Value += BasisV.y * ( bezpatch[4].vPosition * BasisU.x + bezpatch[5].vPosition * BasisU.y + bezpatch[6].vPosition * BasisU.z + bezpatch[7].vPosition * BasisU.w );
-    Value += BasisV.z * ( bezpatch[8].vPosition * BasisU.x + bezpatch[9].vPosition * BasisU.y + bezpatch[10].vPosition * BasisU.z + bezpatch[11].vPosition * BasisU.w );
-    Value += BasisV.w * ( bezpatch[12].vPosition * BasisU.x + bezpatch[13].vPosition * BasisU.y + bezpatch[14].vPosition * BasisU.z + bezpatch[15].vPosition * BasisU.w );
+    //Value += BasisV.y * ( bezpatch[4].vPosition * BasisU.x + bezpatch[5].vPosition * BasisU.y + bezpatch[6].vPosition * BasisU.z + bezpatch[7].vPosition * BasisU.w );
+    //Value += BasisV.z * ( bezpatch[8].vPosition * BasisU.x + bezpatch[9].vPosition * BasisU.y + bezpatch[10].vPosition * BasisU.z + bezpatch[11].vPosition * BasisU.w );
+    //Value += BasisV.w * ( bezpatch[12].vPosition * BasisU.x + bezpatch[13].vPosition * BasisU.y + bezpatch[14].vPosition * BasisU.z + bezpatch[15].vPosition * BasisU.w );
 
     return Value;
 }
@@ -184,22 +205,40 @@ float3 EvaluateBezier( const OutputPatch<HS_OUTPUT, OUTPUT_PATCH_SIZE> bezpatch,
 [domain("quad")]
 DS_OUTPUT BezierDS( HS_CONSTANT_DATA_OUTPUT input, 
                     float2 UV : SV_DomainLocation,
-                    const OutputPatch<HS_OUTPUT, OUTPUT_PATCH_SIZE> bezpatch )
+                    const OutputPatch<HS_OUTPUT, OUTPUT_PATCH_SIZE> p )
 {
-    float4 BasisU = BernsteinBasis( UV.x );
-    float4 BasisV = BernsteinBasis( UV.y );
-    float4 dBasisU = dBernsteinBasis( UV.x );
-    float4 dBasisV = dBernsteinBasis( UV.y );
+    float4 BasisU = HermiteBasis( UV.x );
+    float4 BasisV = HermiteBasis( UV.y );
+    float4 dBasisU = dHermiteBasis( UV.x );
+    float4 dBasisV = dHermiteBasis( UV.y );
 
-    float3 WorldPos = EvaluateBezier( bezpatch, BasisU, BasisV );
-    float3 Tangent = EvaluateBezier( bezpatch, dBasisU, BasisV );
-    float3 BiTangent = EvaluateBezier( bezpatch, BasisU, dBasisV );
-    float3 Norm = normalize( cross( Tangent, BiTangent ) );
+    float4 tangent0 = p[2].vPosition - p[0].vPosition;
+    float4 tangent1 = p[3].vPosition - p[1].vPosition;
+
+    tangent0 *= 0.5;
+    tangent1 *= 0.5;
+
+    float4 position = BasisU.x * p[1].vPosition + 
+                      BasisU.y * tangent0 + 
+                      BasisU.z * tangent1 + 
+                      BasisU.w * p[2].vPosition;
+
+    float4 tangent = dBasisU.x * p[1].vPosition + 
+                     dBasisU.y * tangent0 + 
+                     dBasisU.z * tangent1 + 
+                     dBasisU.w * p[2].vPosition;
+
+    float3 bitangent = cross(tangent.xyz, float3(0,1,0));
+
+    bitangent = normalize(bitangent)*0.5;
+
+    bitangent *= UV.y*2.0 - 1.0;
+
+    float3 WorldPos = position.xyz + bitangent * position.w;
 
     DS_OUTPUT Output;
     Output.vPosition = mul( float4(WorldPos,1), g_mViewProjection );
-    Output.vWorldPos = WorldPos;
-    Output.vNormal = Norm;
+    Output.vColor = float4(UV.x, UV.y, 0, 1);
 
     return Output;    
 }
@@ -213,9 +252,7 @@ DS_OUTPUT BezierDS( HS_CONSTANT_DATA_OUTPUT input,
 
 float4 BezierPS( DS_OUTPUT Input ) : SV_TARGET
 {
-    float3 N = normalize(Input.vNormal);
-    float3 L = normalize(Input.vWorldPos - g_vCameraPosWorld);
-    return abs(dot(N, L)) * float4(1, 0, 0, 1);
+    return Input.vColor;
 }
 
 //--------------------------------------------------------------------------------------

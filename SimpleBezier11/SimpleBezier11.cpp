@@ -180,8 +180,8 @@ void InitApp()
     g_SampleUI.GetRadioButton( IDC_PARTITION_INTEGER )->SetChecked( true );
 
     // Setup the camera's view parameters
-    static const XMVECTORF32 s_vecEye = { 1.0f, 1.5f, -3.5f, 0.f };
-    static const XMVECTORF32 s_vecAt = { 0.0f, 0.0f, 0.0f, 0.f };
+    static const XMVECTORF32 s_vecEye = { 5.0f, 3.0f, -10.0f, 0.f };
+    static const XMVECTORF32 s_vecAt = { 5.0f, 0.0f, 0.0f, 0.f };
     g_Camera.SetViewParams( s_vecEye, s_vecAt );
 
 }
@@ -373,7 +373,7 @@ HRESULT CALLBACK OnD3D11CreateDevice( ID3D11Device* pd3dDevice, const DXGI_SURFA
     // Create our vertex input layout - this matches the BEZIER_CONTROL_POINT structure
     const D3D11_INPUT_ELEMENT_DESC patchlayout[] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     V_RETURN( pd3dDevice->CreateInputLayout( patchlayout, ARRAYSIZE( patchlayout ), pBlobVS->GetBufferPointer(),
@@ -529,7 +529,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
     UINT Stride = sizeof( BEZIER_CONTROL_POINT );
     UINT Offset = 0;
     pd3dImmediateContext->IASetVertexBuffers( 0, 1, &g_pControlPointVB, &Stride, &Offset );
-    pd3dImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST );
+    pd3dImmediateContext->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST );
 
     // Draw the mesh
     pd3dImmediateContext->Draw( ARRAYSIZE(g_MobiusStrip), 0 );
