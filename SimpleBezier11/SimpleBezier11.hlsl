@@ -29,9 +29,10 @@ cbuffer cbPerFrame : register( b0 )
 {
     matrix g_mViewProjection;
     float3 g_vCameraPosWorld;
+    float  g_CameraNear;
     float  g_fTessellationFactor;
-    uint   NumControlPoints;
-    uint   dummy[3];
+    uint   g_NumControlPoints;
+    uint   dummy[2];
 };
 
 //--------------------------------------------------------------------------------------
@@ -67,8 +68,8 @@ VS_CONTROL_POINT_OUTPUT BezierVS( VS_CONTROL_POINT_INPUT Input )
     uint id = patch_index + patch_point;
     if (id < 1)
         id = 1;
-    if (id > NumControlPoints)
-        id = NumControlPoints;
+    if (id > g_NumControlPoints)
+        id = g_NumControlPoints;
 
     Output.vPosition = g_Buffer.Load(id - 1);
 
@@ -95,15 +96,40 @@ struct HS_OUTPUT
 // via SV_TessFactor and SV_InsideTessFactor for each patch.  In a more complex scene,
 // you might calculate a variable tessellation factor based on the camera's distance.
 
+// Tesselation factors on edges must be the same for adjacent patches to avoid cracks.
+// Tesselation factors along the road should take road curvature into account.
+
 HS_CONSTANT_DATA_OUTPUT BezierConstantHS( InputPatch<VS_CONTROL_POINT_OUTPUT, INPUT_PATCH_SIZE> ip,
                                           uint PatchID : SV_PrimitiveID )
 {    
     HS_CONSTANT_DATA_OUTPUT Output;
 
-    float TessAmount = g_fTessellationFactor;
+    float tesselation_density = g_fTessellationFactor*8.0;
 
-    Output.Edges[0] = Output.Edges[1] = Output.Edges[2] = Output.Edges[3] = TessAmount;
-    Output.Inside[0] = Output.Inside[1] = TessAmount;
+    float distance_to_beg = length(g_vCameraPosWorld - ip[1].vPosition.xyz);
+    float distance_to_end = length(g_vCameraPosWorld - ip[2].vPosition.xyz);
+
+    //TODO: This should be more robust in case of higher curvature and width.
+    float distance_to_patch = min(distance_to_beg, distance_to_end);
+
+    float road_distance = length(ip[1].vPosition.xyz - ip[2].vPosition.xyz);
+    float width_beg = ip[1].vPosition.w;
+    float width_end = ip[2].vPosition.w;
+    
+    road_distance *= g_CameraNear / distance_to_patch;
+    width_beg *= g_CameraNear / distance_to_beg;
+    width_end *= g_CameraNear / distance_to_end;
+
+    float tesselation_along = max(road_distance * tesselation_density, 4.0);
+    float tesselation_beg = width_beg * tesselation_density;
+    float tesselation_end = width_end * tesselation_density;
+
+    Output.Edges[1] = Output.Edges[3] = tesselation_along;
+    Output.Edges[0] = tesselation_beg;
+    Output.Edges[2] = tesselation_end;
+    
+    Output.Inside[0] = tesselation_along;
+    Output.Inside[1] = (tesselation_beg + tesselation_end)/2;
 
     return Output;
 }

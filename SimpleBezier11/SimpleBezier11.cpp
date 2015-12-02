@@ -50,9 +50,10 @@ struct CB_PER_FRAME_CONSTANTS
 {
     XMFLOAT4X4  mViewProjection;
     XMFLOAT3    vCameraPosWorld;
+    float       CameraNear;
     float       fTessellationFactor;
     UINT        NumControlPoints;
-    UINT        dummy[3];
+    UINT        dummy[2];
 };
 
 ID3D11Buffer*                       g_pcbPerFrame = nullptr;
@@ -143,7 +144,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     DXUTInit( true, true ); // Parse the command line, show msgboxes on error, and an extra cmd line param to force REF for now
     DXUTSetCursorSettings( true, true ); // Show the cursor and clip it when in full screen
     DXUTCreateWindow( L"SimpleBezier11" );
-    DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0,  true, 800, 600 );
+    DXUTCreateDevice( D3D_FEATURE_LEVEL_11_0,  true, 1024, 768 );
     DXUTMainLoop(); // Enter into the DXUT render loop
 
     return DXUTGetExitCode();
@@ -451,7 +452,7 @@ HRESULT CALLBACK OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevice, IDXGISwapCha
 
     // Setup the camera's projection parameters
     float fAspectRatio = pBackBufferSurfaceDesc->Width / ( FLOAT )pBackBufferSurfaceDesc->Height;
-    g_Camera.SetProjParams( XM_PI / 4, fAspectRatio, 0.1f, 20.0f );
+    g_Camera.SetProjParams( XM_PI / 4, fAspectRatio, 0.1f, 2000.0f );
     g_Camera.SetWindow( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height );
     g_Camera.SetButtonMasks( MOUSE_MIDDLE_BUTTON, MOUSE_WHEEL, MOUSE_LEFT_BUTTON );
 
@@ -488,6 +489,7 @@ void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext*
     auto pData = reinterpret_cast<CB_PER_FRAME_CONSTANTS*>( MappedResource.pData );
     XMStoreFloat4x4( &pData->mViewProjection, XMMatrixTranspose( mViewProjection ) );
     XMStoreFloat3( &pData->vCameraPosWorld, g_Camera.GetEyePt() );
+    pData->CameraNear = g_Camera.GetNearClip();
     pData->fTessellationFactor = (float)g_fSubdivs;
     pData->NumControlPoints = ARRAYSIZE(g_MobiusStrip);
 
