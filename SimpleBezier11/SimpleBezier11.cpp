@@ -25,7 +25,7 @@ const DWORD MAX_DIVS = 16; // Min and Max divisions of the patch per side for th
 // Global variables
 //--------------------------------------------------------------------------------------
 CDXUTDialogResourceManager          g_DialogResourceManager; // manager for shared resources of dialogs
-CModelViewerCamera                  g_Camera;                // A model viewing camera
+CFirstPersonCamera                  g_Camera;                // A model viewing camera
 CD3DSettingsDlg                     g_D3DSettingsDlg;        // Device settings dialog
 CDXUTDialog                         g_HUD;                   // manages the 3D   
 CDXUTDialog                         g_SampleUI;              // dialog for sample specific controls
@@ -109,6 +109,7 @@ void CALLBACK OnD3D11ReleasingSwapChain( void* pUserContext );
 void CALLBACK OnD3D11DestroyDevice( void* pUserContext );
 void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext* pd3dImmediateContext, double fTime,
                                   float fElapsedTime, void* pUserContext );
+void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext );
 
 
 void InitApp();
@@ -132,6 +133,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     DXUTSetCallbackDeviceChanging( ModifyDeviceSettings );
     DXUTSetCallbackMsgProc( MsgProc );
     DXUTSetCallbackFrameMove( OnFrameMove );
+    //DXUTSetCallbackKeyboard( OnKeyboard );
 
     DXUTSetCallbackD3D11DeviceAcceptable( IsD3D11DeviceAcceptable );
     DXUTSetCallbackD3D11DeviceCreated( OnD3D11CreateDevice );
@@ -187,6 +189,8 @@ void InitApp()
     static const XMVECTORF32 s_vecEye = { 5.0f, 3.0f, -10.0f, 0.f };
     static const XMVECTORF32 s_vecAt = { 5.0f, 0.0f, 0.0f, 0.f };
     g_Camera.SetViewParams( s_vecEye, s_vecAt );
+    g_Camera.SetEnablePositionMovement(true);
+    g_Camera.SetEnableYAxisMovement(true);
 
 }
 
@@ -207,6 +211,71 @@ void CALLBACK OnFrameMove( double fTime, float fElapsedTime, void* pUserContext 
 {
     // Update the camera's position based on user input 
     g_Camera.FrameMove( fElapsedTime );
+}
+
+void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext )
+{
+    if (bKeyDown)
+    {
+        switch (nChar)
+        {
+        case 'a':
+        case 'A':
+            {
+                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
+                auto eye = g_Camera.GetEyePt();
+                auto look = g_Camera.GetLookAtPt();
+
+                eye = eye - world.r[0];
+                look = look - world.r[0];
+
+                g_Camera.SetViewParams(eye, look);
+            }
+            break;
+
+        case 'd':
+        case 'D':
+            {
+                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
+                auto eye = g_Camera.GetEyePt();
+                auto look = g_Camera.GetLookAtPt();
+
+                eye = eye + world.r[0];
+                look = look + world.r[0];
+
+                g_Camera.SetViewParams(eye, look);
+            }
+            break;
+
+        case 's':
+        case 'S':
+            {
+                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
+                auto eye = g_Camera.GetEyePt();
+                auto look = g_Camera.GetLookAtPt();
+
+                eye = eye - world.r[2];
+                look = look - world.r[2];
+
+                g_Camera.SetViewParams(eye, look);
+            }
+            break;
+
+        case 'w':
+        case 'W':
+            {
+                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
+                auto eye = g_Camera.GetEyePt();
+                auto look = g_Camera.GetLookAtPt();
+
+                eye = eye + world.r[2];
+                look = look + world.r[2];
+
+                g_Camera.SetViewParams(eye, look);
+            }
+            break;
+        }
+    }
 }
 
 
@@ -453,8 +522,8 @@ HRESULT CALLBACK OnD3D11ResizedSwapChain( ID3D11Device* pd3dDevice, IDXGISwapCha
     // Setup the camera's projection parameters
     float fAspectRatio = pBackBufferSurfaceDesc->Width / ( FLOAT )pBackBufferSurfaceDesc->Height;
     g_Camera.SetProjParams( XM_PI / 4, fAspectRatio, 0.1f, 2000.0f );
-    g_Camera.SetWindow( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height );
-    g_Camera.SetButtonMasks( MOUSE_MIDDLE_BUTTON, MOUSE_WHEEL, MOUSE_LEFT_BUTTON );
+    //g_Camera.SetWindow( pBackBufferSurfaceDesc->Width, pBackBufferSurfaceDesc->Height );
+    //g_Camera.SetButtonMasks( MOUSE_MIDDLE_BUTTON, MOUSE_WHEEL, MOUSE_LEFT_BUTTON );
 
     g_HUD.SetLocation( pBackBufferSurfaceDesc->Width - 170, 0 );
     g_HUD.SetSize( 170, 170 );

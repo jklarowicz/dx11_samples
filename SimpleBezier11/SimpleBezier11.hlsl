@@ -91,13 +91,22 @@ struct HS_OUTPUT
     //float4 vColor              : COLOR0;
 };
 
+float DistanceToLine(float3 pt, float3 p0, float3 p1)
+{
+    float3 d = p1 - p0;
+    float3 p = pt - p0;
+
+    float3 p_on_line = saturate(dot(p, d) / dot(d,d)) * d;
+    return length(p - p_on_line);
+}
+
 // This constant hull shader is executed once per patch.  For the simple Mobius strip
 // model, it will be executed 4 times.  In this sample, we set the tessellation factor
 // via SV_TessFactor and SV_InsideTessFactor for each patch.  In a more complex scene,
 // you might calculate a variable tessellation factor based on the camera's distance.
 
 // Tesselation factors on edges must be the same for adjacent patches to avoid cracks.
-// Tesselation factors along the road should take road curvature into account.
+// Tesselation factors along the road should take road curvature (projected!) into account.
 
 HS_CONSTANT_DATA_OUTPUT BezierConstantHS( InputPatch<VS_CONTROL_POINT_OUTPUT, INPUT_PATCH_SIZE> ip,
                                           uint PatchID : SV_PrimitiveID )
@@ -108,9 +117,8 @@ HS_CONSTANT_DATA_OUTPUT BezierConstantHS( InputPatch<VS_CONTROL_POINT_OUTPUT, IN
 
     float distance_to_beg = length(g_vCameraPosWorld - ip[1].vPosition.xyz);
     float distance_to_end = length(g_vCameraPosWorld - ip[2].vPosition.xyz);
-
     //TODO: This should be more robust in case of higher curvature and width.
-    float distance_to_patch = min(distance_to_beg, distance_to_end);
+    float distance_to_patch = DistanceToLine(g_vCameraPosWorld, ip[1].vPosition.xyz, ip[2].vPosition.xyz);
 
     float road_distance = length(ip[1].vPosition.xyz - ip[2].vPosition.xyz);
     float width_beg = ip[1].vPosition.w;
@@ -121,15 +129,15 @@ HS_CONSTANT_DATA_OUTPUT BezierConstantHS( InputPatch<VS_CONTROL_POINT_OUTPUT, IN
     width_end *= g_CameraNear / distance_to_end;
 
     float tesselation_along = max(road_distance * tesselation_density, 4.0);
-    float tesselation_beg = width_beg * tesselation_density;
-    float tesselation_end = width_end * tesselation_density;
+    float tesselation_beg = min(width_beg * tesselation_density, 4.0);
+    float tesselation_end = min(width_end * tesselation_density, 4.0);
 
     Output.Edges[1] = Output.Edges[3] = tesselation_along;
     Output.Edges[0] = tesselation_beg;
     Output.Edges[2] = tesselation_end;
     
     Output.Inside[0] = tesselation_along;
-    Output.Inside[1] = (tesselation_beg + tesselation_end)/2;
+    Output.Inside[1] = max(tesselation_beg, tesselation_end);
 
     return Output;
 }
