@@ -9,6 +9,9 @@
       <UniqueIdentifier>{2c3d4c8c-5d1a-459a-a05a-a4e4b608a44e}</UniqueIdentifier>
       <Extensions>fx;fxh;hlsl</Extensions>
     </Filter>
+    <Filter Include="Bezier">
+      <UniqueIdentifier>{a62cc534-436b-497f-8aa9-83c83126ffc4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\DXUT\Optional\directx.ico">
@@ -31,6 +34,21 @@
     <ResourceCompile Include="SimpleBezier11.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+    <ClInclude Include="bezier\bezier.h">
+      <Filter>Bezier</Filter>
+    </ClInclude>
+    <ClInclude Include="bezier\bezierIntersect.h">
+      <Filter>Bezier</Filter>
+    </ClInclude>
+    <ClInclude Include="bezier\bilinearIntersect.h">
+      <Filter>Bezier</Filter>
+    </ClInclude>
+    <ClInclude Include="bezier\math.h">
+      <Filter>Bezier</Filter>
+    </ClInclude>
+    <ClInclude Include="bezier\math_sse.h">
+      <Filter>Bezier</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

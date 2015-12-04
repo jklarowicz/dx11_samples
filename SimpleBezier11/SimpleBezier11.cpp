@@ -109,11 +109,10 @@ void CALLBACK OnD3D11ReleasingSwapChain( void* pUserContext );
 void CALLBACK OnD3D11DestroyDevice( void* pUserContext );
 void CALLBACK OnD3D11FrameRender( ID3D11Device* pd3dDevice, ID3D11DeviceContext* pd3dImmediateContext, double fTime,
                                   float fElapsedTime, void* pUserContext );
-void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext );
-
 
 void InitApp();
 void RenderText();
+void InitIntersection();
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -133,7 +132,6 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     DXUTSetCallbackDeviceChanging( ModifyDeviceSettings );
     DXUTSetCallbackMsgProc( MsgProc );
     DXUTSetCallbackFrameMove( OnFrameMove );
-    //DXUTSetCallbackKeyboard( OnKeyboard );
 
     DXUTSetCallbackD3D11DeviceAcceptable( IsD3D11DeviceAcceptable );
     DXUTSetCallbackD3D11DeviceCreated( OnD3D11CreateDevice );
@@ -142,6 +140,7 @@ int WINAPI wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     DXUTSetCallbackD3D11SwapChainReleasing( OnD3D11ReleasingSwapChain );
     DXUTSetCallbackD3D11DeviceDestroyed( OnD3D11DestroyDevice );
 
+    InitIntersection();
     InitApp();
     DXUTInit( true, true ); // Parse the command line, show msgboxes on error, and an extra cmd line param to force REF for now
     DXUTSetCursorSettings( true, true ); // Show the cursor and clip it when in full screen
@@ -212,72 +211,6 @@ void CALLBACK OnFrameMove( double fTime, float fElapsedTime, void* pUserContext 
     // Update the camera's position based on user input 
     g_Camera.FrameMove( fElapsedTime );
 }
-
-void CALLBACK OnKeyboard(UINT nChar, bool bKeyDown, bool bAltDown, void* pUserContext )
-{
-    if (bKeyDown)
-    {
-        switch (nChar)
-        {
-        case 'a':
-        case 'A':
-            {
-                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
-                auto eye = g_Camera.GetEyePt();
-                auto look = g_Camera.GetLookAtPt();
-
-                eye = eye - world.r[0];
-                look = look - world.r[0];
-
-                g_Camera.SetViewParams(eye, look);
-            }
-            break;
-
-        case 'd':
-        case 'D':
-            {
-                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
-                auto eye = g_Camera.GetEyePt();
-                auto look = g_Camera.GetLookAtPt();
-
-                eye = eye + world.r[0];
-                look = look + world.r[0];
-
-                g_Camera.SetViewParams(eye, look);
-            }
-            break;
-
-        case 's':
-        case 'S':
-            {
-                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
-                auto eye = g_Camera.GetEyePt();
-                auto look = g_Camera.GetLookAtPt();
-
-                eye = eye - world.r[2];
-                look = look - world.r[2];
-
-                g_Camera.SetViewParams(eye, look);
-            }
-            break;
-
-        case 'w':
-        case 'W':
-            {
-                DirectX::XMMATRIX world = g_Camera.GetViewMatrix();
-                auto eye = g_Camera.GetEyePt();
-                auto look = g_Camera.GetLookAtPt();
-
-                eye = eye + world.r[2];
-                look = look + world.r[2];
-
-                g_Camera.SetViewParams(eye, look);
-            }
-            break;
-        }
-    }
-}
-
 
 //--------------------------------------------------------------------------------------
 // Render the help and statistics text
@@ -660,3 +593,17 @@ void CALLBACK OnD3D11DestroyDevice( void* pUserContext )
     SAFE_RELEASE( g_pControlPointSRV );
     SAFE_RELEASE( g_pControlPointBuffer );
 }
+
+#undef V
+
+#include "bezier/bezierIntersect.h"
+#include "bezier/math.h"
+
+void InitIntersection()
+{
+    using namespace OsdBezier;
+
+    BezierPatch<vec3t<float>, float> patch();
+    //BezierPatchIntersection<vec3t<float>, float> patch;
+}
+

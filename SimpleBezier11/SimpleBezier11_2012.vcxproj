@@ -383,6 +383,11 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClInclude Include="bezier\bezier.h" />
+    <ClInclude Include="bezier\bezierIntersect.h" />
+    <ClInclude Include="bezier\bilinearIntersect.h" />
+    <ClInclude Include="bezier\math.h" />
+    <ClInclude Include="bezier\math_sse.h" />
     <CLInclude Include="MobiusStrip.h" />
   </ItemGroup>
   <ItemGroup>

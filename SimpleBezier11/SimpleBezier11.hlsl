@@ -159,6 +159,7 @@ HS_CONSTANT_DATA_OUTPUT BezierConstantHS( InputPatch<VS_CONTROL_POINT_OUTPUT, IN
 [outputtopology("triangle_cw")]
 [outputcontrolpoints(OUTPUT_PATCH_SIZE)]
 [patchconstantfunc("BezierConstantHS")]
+[maxtessfactor(16.0)]
 HS_OUTPUT BezierHS( InputPatch<VS_CONTROL_POINT_OUTPUT, INPUT_PATCH_SIZE> p, 
                     uint i : SV_OutputControlPointID,
                     uint PatchID : SV_PrimitiveID )
